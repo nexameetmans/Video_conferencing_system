@@ -104,6 +104,24 @@ export const AuthProvider = ({ children }) => {
         navigate("/auth");
     }, [navigate]);
 
+    /** Forgot Password: Step 1 - Send OTP */
+    const forgotPasswordSendOTP = async (email) => {
+        const res = await authAPI.forgotPasswordSendOTP(email);
+        return res.data;
+    };
+
+    /** Forgot Password: Step 2 - Verify OTP */
+    const forgotPasswordVerifyOTP = async (email, otp) => {
+        const res = await authAPI.forgotPasswordVerifyOTP(email, otp);
+        return res.data;
+    };
+
+    /** Forgot Password: Step 3 - Reset Password */
+    const resetPassword = async (email, newPassword) => {
+        const res = await authAPI.resetPassword(email, newPassword);
+        return res.data;
+    };
+
     // ── Meeting / History Actions (unchanged API surface) ──
 
     const getHistoryOfUser = async () => {
@@ -179,6 +197,11 @@ export const AuthProvider = ({ children }) => {
         handleRegister,
         handleLogin,
         logout,
+
+        // Forgot Password
+        forgotPasswordSendOTP,
+        forgotPasswordVerifyOTP,
+        resetPassword,
 
         // Meeting / History
         getHistoryOfUser,

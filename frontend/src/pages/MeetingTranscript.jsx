@@ -10,6 +10,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import ArticleIcon from "@mui/icons-material/Article";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
+import Navbar from "../components/Navbar";
 
 export default function MeetingTranscript() {
   const { meetingCode } = useParams();
@@ -127,9 +128,11 @@ export default function MeetingTranscript() {
   ];
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
+    <>
+      <Navbar />
+      <Box
+        sx={{
+          minHeight: "calc(100vh - 65px)",
         background: `
           radial-gradient(ellipse 70% 50% at 20% 5%, rgba(124,92,252,0.12) 0%, transparent 60%),
           radial-gradient(ellipse 50% 40% at 80% 90%, rgba(0,212,255,0.07) 0%, transparent 55%),
@@ -419,5 +422,6 @@ export default function MeetingTranscript() {
         </Box>
       )}
     </Box>
+    </>
   );
 }

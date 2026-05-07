@@ -17,12 +17,18 @@ import {
   Card,
   CardContent,
   Typography,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  Box,
 } from "@mui/material";
 import RestoreIcon from "@mui/icons-material/Restore";
 import LogoutIcon from "@mui/icons-material/Logout";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import KeyboardIcon from "@mui/icons-material/Keyboard";
 import EventIcon from "@mui/icons-material/Event";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { AuthContext } from "../contexts/AuthContext";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Navbar from "../components/Navbar";
@@ -35,8 +41,10 @@ function Dashboard() {
 
   // schedule meeting modal
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [meetingTitle, setMeetingTitle] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
-  const [generatedLink, setGeneratedLink] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [duration, setDuration] = useState("");
   const [, setRefresh] = useState(0);
 
   const [toast, setToast] = useState({ open: false, message: "" });
@@ -63,24 +71,37 @@ function Dashboard() {
 
   const handleScheduleClose = () => {
     setScheduleOpen(false);
+    setMeetingTitle("");
     setScheduledDate("");
-    setGeneratedLink("");
+    setStartTime("");
+    setDuration("");
   };
 
-  const handleScheduleGenerate = () => {
-    if (!scheduledDate) {
-      setToast({ open: true, message: "Please select a date and time" });
+  const handleScheduleSubmit = () => {
+    if (!meetingTitle || !scheduledDate || !startTime || !duration) {
+      setToast({ open: true, message: "Please fill all fields" });
       return;
     }
     const uuid = crypto.randomUUID
       ? crypto.randomUUID()
       : Math.random().toString(36).substring(2, 10);
     const link = `${window.location.origin}/${uuid}`;
-    setGeneratedLink(link);
+    
+    const dateTimeString = `${scheduledDate}T${startTime}`;
+
     // Store in localStorage
     const saved = JSON.parse(localStorage.getItem("scheduledMeetings") || "[]");
-    saved.push({ link, date: scheduledDate, id: uuid });
+    saved.push({ 
+      link, 
+      date: dateTimeString, 
+      title: meetingTitle,
+      duration: duration,
+      id: uuid 
+    });
     localStorage.setItem("scheduledMeetings", JSON.stringify(saved));
+    setRefresh((prev) => prev + 1);
+    setToast({ open: true, message: "Meeting scheduled successfully!" });
+    handleScheduleClose();
   };
 
   const handleCopyLink = async (link) => {
@@ -323,8 +344,13 @@ function Dashboard() {
                             }}
                             onClick={() => handleJoinVideoCall(m.id)}
                           >
-                            {m.id}
+                            {m.title ? `${m.title} (${m.id})` : m.id}
                           </Typography>
+                          {m.duration && (
+                            <Typography variant="caption" sx={{ color: "#9ca3af", display: 'block', mt: 0.5 }}>
+                              Duration: {m.duration}
+                            </Typography>
+                          )}
                         </div>
                         <div style={{ display: "flex", gap: "8px" }}>
                           <Tooltip title="Copy Link">
@@ -402,112 +428,156 @@ function Dashboard() {
       <Dialog
         open={scheduleOpen}
         onClose={handleScheduleClose}
+        maxWidth="sm"
+        fullWidth
         PaperProps={{
           sx: {
             background: "#1c1c2b",
             color: "#fff",
-            minWidth: 400,
             borderRadius: "12px",
+            p: 1,
           },
         }}
       >
         <DialogTitle
           sx={{
-            borderBottom: "1px solid rgba(255,255,255,0.1)",
-            fontWeight: 600,
+            fontWeight: 700,
+            fontSize: "1.5rem",
+            pb: 1,
           }}
         >
           Schedule Meeting
         </DialogTitle>
-        <DialogContent sx={{ mt: 3, pb: 2 }}>
-          <Typography variant="body2" sx={{ mb: 1.5, color: "#9ca3af" }}>
-            Select Date & Time
-          </Typography>
-          <TextField
-            type="datetime-local"
-            fullWidth
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                color: "#fff",
-                background: "rgba(255,255,255,0.05)",
-              },
-              "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
-              "& input[type='datetime-local']::-webkit-calendar-picker-indicator":
-                { filter: "invert(1)" },
-            }}
-          />
-          {generatedLink && (
-            <div
-              style={{
-                marginTop: "1.5rem",
-                padding: "1rem",
-                background: "rgba(124, 92, 252, 0.1)",
-                border: "1px solid rgba(124, 92, 252, 0.3)",
-                borderRadius: "8px",
+        <DialogContent sx={{ p: 3 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 1 }}>
+            <TextField
+              label="Meeting Title"
+              placeholder="e.g., Weekly Sync"
+              fullWidth
+              value={meetingTitle}
+              onChange={(e) => setMeetingTitle(e.target.value)}
+              InputLabelProps={{ style: { color: "#9ca3af" } }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  color: "#fff",
+                  background: "rgba(255,255,255,0.05)",
+                  "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                  "&:hover fieldset": { borderColor: "rgba(255,255,255,0.4)" },
+                  "&.Mui-focused fieldset": { borderColor: "#7c5cfc" },
+                },
               }}
-            >
-              <Typography
-                variant="body2"
-                sx={{ color: "#a78bfa", mb: 1, fontWeight: 500 }}
+            />
+            
+            <TextField
+              type="date"
+              label="Date"
+              fullWidth
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
+              InputLabelProps={{ shrink: true, style: { color: "#9ca3af" } }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  color: "#fff",
+                  background: "rgba(255,255,255,0.05)",
+                  "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                  "&:hover fieldset": { borderColor: "rgba(255,255,255,0.4)" },
+                  "&.Mui-focused fieldset": { borderColor: "#7c5cfc" },
+                },
+                "& input[type='date']::-webkit-calendar-picker-indicator": { filter: "invert(1)" },
+              }}
+            />
+
+            <FormControl fullWidth sx={{
+                "& .MuiOutlinedInput-root": {
+                  color: "#fff",
+                  background: "rgba(255,255,255,0.05)",
+                  "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                  "&:hover fieldset": { borderColor: "rgba(255,255,255,0.4)" },
+                  "&.Mui-focused fieldset": { borderColor: "#7c5cfc" },
+                },
+                "& .MuiSelect-icon": { color: "#9ca3af" },
+              }}>
+              <InputLabel id="start-time-label" style={{ color: "#9ca3af" }}>Start Time</InputLabel>
+              <Select
+                labelId="start-time-label"
+                value={startTime}
+                label="Start Time"
+                onChange={(e) => setStartTime(e.target.value)}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      bgcolor: '#1c1c2b',
+                      color: 'white',
+                    }
+                  }
+                }}
               >
-                Meeting Link Generated:
-              </Typography>
-              <div
-                style={{ display: "flex", gap: "10px", alignItems: "center" }}
+                {Array.from({ length: 48 }).map((_, i) => {
+                  const hours = Math.floor(i / 2).toString().padStart(2, '0');
+                  const minutes = i % 2 === 0 ? '00' : '30';
+                  const timeStr = `${hours}:${minutes}`;
+                  return <MenuItem key={timeStr} value={timeStr}>{timeStr}</MenuItem>;
+                })}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth sx={{
+                "& .MuiOutlinedInput-root": {
+                  color: "#fff",
+                  background: "rgba(255,255,255,0.05)",
+                  "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                  "&:hover fieldset": { borderColor: "rgba(255,255,255,0.4)" },
+                  "&.Mui-focused fieldset": { borderColor: "#7c5cfc" },
+                },
+                "& .MuiSelect-icon": { color: "#9ca3af" },
+              }}>
+              <InputLabel id="duration-label" style={{ color: "#9ca3af" }}>Duration</InputLabel>
+              <Select
+                labelId="duration-label"
+                value={duration}
+                label="Duration"
+                onChange={(e) => setDuration(e.target.value)}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      bgcolor: '#1c1c2b',
+                      color: 'white',
+                    }
+                  }
+                }}
               >
-                <TextField
-                  value={generatedLink}
-                  disabled
-                  fullWidth
-                  size="small"
-                  sx={{
-                    "& .MuiInputBase-input.Mui-disabled": {
-                      color: "#fff",
-                      WebkitTextFillColor: "#fff",
-                    },
-                  }}
-                />
-                <Tooltip title="Copy">
-                  <IconButton
-                    onClick={() => handleCopyLink(generatedLink)}
-                    sx={{
-                      background: "#7c5cfc",
-                      color: "#fff",
-                      "&:hover": { background: "#6b4afc" },
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </div>
-            </div>
-          )}
+                <MenuItem value="30 min">30 min</MenuItem>
+                <MenuItem value="1 hr">1 hr</MenuItem>
+                <MenuItem value="2 hr">2 hr</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
         </DialogContent>
         <DialogActions
-          sx={{ p: 2, pt: 1, borderTop: "1px solid rgba(255,255,255,0.1)" }}
+          sx={{ px: 3, pb: 3, pt: 1, justifyContent: "space-between" }}
         >
           <Button
             onClick={handleScheduleClose}
-            sx={{ color: "#9ca3af", textTransform: "none" }}
+            sx={{ color: "#9ca3af", textTransform: "none", fontSize: "1rem" }}
           >
-            Close
+            Cancel
           </Button>
-          {!generatedLink && (
-            <Button
-              onClick={handleScheduleGenerate}
-              variant="contained"
-              sx={{
-                background: "#7c5cfc",
-                textTransform: "none",
-                "&:hover": { background: "#6b4afc" },
-              }}
-            >
-              Generate Link
-            </Button>
-          )}
+          <Button
+            onClick={handleScheduleSubmit}
+            disabled={!meetingTitle || !scheduledDate || !startTime || !duration}
+            variant="contained"
+            sx={{
+              background: "#7c5cfc",
+              textTransform: "none",
+              fontSize: "1rem",
+              px: 3,
+              py: 1,
+              "&:hover": { background: "#6b4afc" },
+              "&.Mui-disabled": { background: "rgba(124, 92, 252, 0.3)", color: "rgba(255,255,255,0.3)" }
+            }}
+          >
+            Schedule Meeting
+          </Button>
         </DialogActions>
       </Dialog>
 

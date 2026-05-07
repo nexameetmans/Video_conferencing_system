@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
   Container, Box, Paper, Typography, TextField, Button,
@@ -8,6 +8,7 @@ import {
   CssBaseline
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
+import VideoCallIcon from "@mui/icons-material/VideoCall";
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 const darkTheme = createTheme({
@@ -173,6 +174,9 @@ export default function Authentication() {
   }, [location.state]);
   const [step, setStep] = useState(0); // 0 = email, 1 = otp, 2 = details
 
+  const [forgotPassword, setForgotPassword] = useState(false); // Forgot password mode
+  const [forgotStep, setForgotStep] = useState(0); // 0 = email, 1 = otp, 2 = new password
+
   /* shared */
   const [email, setEmail] = useState("");
 
@@ -183,6 +187,14 @@ export default function Authentication() {
   /* otp */
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const otpRefs = Array.from({ length: 6 }, () => useRef(null));
+
+  /* forgot password */
+  const [forgotOtpDigits, setForgotOtpDigits] = useState(["", "", "", "", "", ""]);
+  const forgotOtpRefs = Array.from({ length: 6 }, () => useRef(null));
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false);
 
   /* registration */
   const [regName, setRegName] = useState("");
@@ -196,11 +208,14 @@ export default function Authentication() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState({ show: false, message: "", severity: "success" });
 
-  const { sendOTP, verifyOTP, handleRegister, handleLogin } = useAuth();
+  const { sendOTP, verifyOTP, handleRegister, handleLogin, forgotPasswordSendOTP, forgotPasswordVerifyOTP, resetPassword } = useAuth();
 
   const strength = getPasswordStrength(regPwd);
   const otpActive = mode === 1 && step === 1;
   const countdown = useCountdown(otpActive);
+
+  const forgotOtpActive = forgotPassword && forgotStep === 1;
+  const forgotCountdown = useCountdown(forgotOtpActive);
 
   const showToast = (message, severity = "success") => {
     setToast({ show: true, message, severity });
@@ -333,6 +348,122 @@ export default function Authentication() {
     }
   };
 
+  /* ───── Forgot Password Handlers ────────────────────── */
+  const handleForgotPasswordClick = () => {
+    setForgotPassword(true);
+    setForgotStep(0);
+    setEmail("");
+    setError("");
+    setForgotOtpDigits(["", "", "", "", "", ""]);
+    setNewPassword("");
+    setNewPasswordConfirm("");
+  };
+
+  const handleBackFromForgotPassword = () => {
+    setForgotPassword(false);
+    setForgotStep(0);
+    setEmail("");
+    setError("");
+    setForgotOtpDigits(["", "", "", "", "", ""]);
+    setNewPassword("");
+    setNewPasswordConfirm("");
+  };
+
+  const handleForgotPasswordSendOTP = async (e) => {
+    e?.preventDefault();
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    if (!email.trim() || !emailRegex.test(email.trim())) {
+      setError("Please enter a valid email address");
+      return;
+    }
+    setLoading(true); clearError();
+    try {
+      await forgotPasswordSendOTP(email.trim());
+      showToast("OTP sent to your email address!");
+      setForgotStep(1);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPasswordOtpChange = (index, value) => {
+    const digit = value.replace(/\D/, "").slice(-1);
+    const next = [...forgotOtpDigits];
+    next[index] = digit;
+    setForgotOtpDigits(next);
+    clearError();
+    if (digit && index < 5) forgotOtpRefs[index + 1].current?.focus();
+  };
+
+  const handleForgotPasswordOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !forgotOtpDigits[index] && index > 0) {
+      forgotOtpRefs[index - 1].current?.focus();
+    }
+    if (e.key === "ArrowLeft" && index > 0) forgotOtpRefs[index - 1].current?.focus();
+    if (e.key === "ArrowRight" && index < 5) forgotOtpRefs[index + 1].current?.focus();
+  };
+
+  const handleForgotPasswordOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length === 6) {
+      setForgotOtpDigits(pasted.split(""));
+      forgotOtpRefs[5].current?.focus();
+    }
+  };
+
+  const handleForgotPasswordVerifyOTP = async (e) => {
+    e?.preventDefault();
+    const otp = forgotOtpDigits.join("");
+    if (otp.length !== 6) { setError("Please enter all 6 digits"); return; }
+    setLoading(true); clearError();
+    try {
+      await forgotPasswordVerifyOTP(email.trim(), otp);
+      showToast("Email verified! Please set your new password.");
+      setForgotStep(2);
+    } catch (err) {
+      setError(err.response?.data?.message || "Verification failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPasswordResendOTP = async () => {
+    if (!forgotCountdown.canResend) return;
+    setLoading(true); clearError(); setForgotOtpDigits(["", "", "", "", "", ""]);
+    try {
+      await forgotPasswordSendOTP(email.trim());
+      forgotCountdown.reset();
+      showToast("New OTP sent successfully!");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to resend OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e?.preventDefault();
+    if (!newPassword) { setError("New password is required"); return; }
+    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[a-z]).{8,}$/.test(newPassword)) {
+      setError("Password must be at least 8 characters long and include uppercase, lowercase, and a number");
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) { setError("Passwords do not match"); return; }
+    setLoading(true); clearError();
+    try {
+      await resetPassword(email.trim(), newPassword);
+      showToast("Password reset successfully! Please sign in.");
+      handleBackFromForgotPassword();
+    } catch (err) {
+      setError(err.response?.data?.message || "Password reset failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -372,24 +503,35 @@ export default function Authentication() {
 
         <Container maxWidth="xs" sx={{ position: 'relative', zIndex: 1 }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Box sx={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 56, height: 56, borderRadius: 3, mb: 2,
-              background: 'linear-gradient(135deg, #7c5cfc, #00d4ff)',
-              boxShadow: '0 8px 24px rgba(124, 92, 252, 0.4)'
-            }}>
-              <svg style={{ width: 28, height: 28, color: '#fff' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-              </svg>
+            <Box 
+              component={Link} 
+              to="/" 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '10px', 
+                mb: 1,
+                textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s ease',
+                '&:hover': { opacity: 0.8 }
+              }}
+            >
+              <VideoCallIcon sx={{ color: "#7c5cfc", fontSize: "2.2rem" }} />
+              <h2 style={{ 
+                margin: 0, 
+                fontWeight: 800, 
+                fontSize: "1.7rem", 
+                letterSpacing: "-0.02em",
+                background: "linear-gradient(135deg, #a78bfa, #00d4ff)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent" 
+              }}>NexaMeet</h2>
             </Box>
-            <Typography variant="h4" component="h1" fontWeight="800" sx={{
-              background: 'linear-gradient(135deg, #a78bfa, #00d4ff)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-            }}>
-              NexaMeet
-            </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {mode === 0 ? "Sign in to your account" :
+              {forgotPassword ? "Reset your password securely" :
+                mode === 0 ? "Sign in to your account" :
                 step === 0 ? "Create your account to get started" :
                   step === 1 ? "Verify your email address" : "Complete your profile details"}
             </Typography>
@@ -398,15 +540,17 @@ export default function Authentication() {
           <Fade in={true} timeout={600}>
             <Paper elevation={24} sx={{ p: { xs: 3, sm: 4 }, backdropFilter: 'blur(20px)', backgroundColor: 'rgba(13, 13, 43, 0.8)' }}>
 
-              <Tabs
-                value={mode}
-                onChange={handleTabChange}
-                variant="fullWidth"
-                sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
-              >
-                <Tab label="Sign In" />
-                <Tab label="Register" />
-              </Tabs>
+              {!forgotPassword && (
+                <Tabs
+                  value={mode}
+                  onChange={handleTabChange}
+                  variant="fullWidth"
+                  sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+                >
+                  <Tab label="Sign In" />
+                  <Tab label="Register" />
+                </Tabs>
+              )}
 
               {error && (
                 <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
@@ -415,7 +559,7 @@ export default function Authentication() {
               )}
 
               {/* ── LOGIN ── */}
-              {mode === 0 && (
+              {mode === 0 && !forgotPassword && (
                 <Box component="form" onSubmit={handleLoginSubmit} noValidate>
                   <TextField
                     fullWidth
@@ -446,16 +590,207 @@ export default function Authentication() {
                       )
                     }}
                   />
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                    <Button 
+                      type="button" 
+                      variant="text" 
+                      size="small" 
+                      onClick={handleForgotPasswordClick}
+                      sx={{ textTransform: 'none', color: 'secondary.main', p: 0 }}
+                    >
+                      Forgot password?
+                    </Button>
+                  </Box>
                   <Button
                     type="submit"
                     fullWidth
                     variant="contained"
                     size="large"
                     disabled={loading}
-                    sx={{ mt: 3, mb: 1 }}
+                    sx={{ mt: 1, mb: 1 }}
                   >
                     {loading ? <CircularProgress size={24} color="inherit" /> : "Sign In"}
                   </Button>
+                </Box>
+              )}
+
+              {/* ── FORGOT PASSWORD ── */}
+              {forgotPassword && (
+                <Box>
+                  <Stepper activeStep={forgotStep} alternativeLabel sx={{ mb: 4 }}>
+                    {['Email', 'Verify', 'New Password'].map((label) => (
+                      <Step key={label}>
+                        <StepLabel>{label}</StepLabel>
+                      </Step>
+                    ))}
+                  </Stepper>
+
+                  {/* Step 0: Email */}
+                  {forgotStep === 0 && (
+                    <Box component="form" onSubmit={handleForgotPasswordSendOTP} noValidate>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Enter your email address and we'll send you a code to reset your password.
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        label="Email Address"
+                        variant="outlined"
+                        margin="normal"
+                        value={email}
+                        onChange={(e) => { setEmail(e.target.value); clearError(); }}
+                        autoComplete="email"
+                        autoFocus
+                      />
+                      <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        disabled={loading || !email}
+                        sx={{ mt: 3 }}
+                      >
+                        {loading ? <CircularProgress size={24} color="inherit" /> : "Send Verification Code"}
+                      </Button>
+                      <Button fullWidth variant="text" size="small" onClick={handleBackFromForgotPassword} sx={{ mt: 2, color: 'text.secondary' }}>
+                        Back to Sign In
+                      </Button>
+                    </Box>
+                  )}
+
+                  {/* Step 1: OTP */}
+                  {forgotStep === 1 && (
+                    <Box component="form" onSubmit={handleForgotPasswordVerifyOTP} noValidate>
+                      <Typography variant="body2" align="center" color="text.secondary" gutterBottom>
+                        Sent to <Box component="span" fontWeight="bold" color="secondary.main">{email}</Box>
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', my: 3 }} onPaste={handleForgotPasswordOtpPaste}>
+                        {forgotOtpDigits.map((digit, i) => (
+                          <TextField
+                            key={i}
+                            inputRef={forgotOtpRefs[i]}
+                            value={digit}
+                            onChange={(e) => handleForgotPasswordOtpChange(i, e.target.value)}
+                            onKeyDown={(e) => handleForgotPasswordOtpKeyDown(i, e)}
+                            inputProps={{
+                              maxLength: 1,
+                              style: { textAlign: 'center', fontSize: '1.25rem', fontWeight: 'bold', padding: '14px 0' }
+                            }}
+                            sx={{ width: 50 }}
+                          />
+                        ))}
+                      </Box>
+
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, px: 1 }}>
+                        <Typography variant="caption" color={forgotCountdown.expired ? 'error' : 'text.secondary'} fontFamily="monospace">
+                          {forgotCountdown.expired ? "Code expired" : `Expires in ${forgotCountdown.display}`}
+                        </Typography>
+                        <Button
+                          variant="text"
+                          size="small"
+                          onClick={handleForgotPasswordResendOTP}
+                          disabled={!forgotCountdown.canResend || loading}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          {forgotCountdown.canResend ? "Resend Code" : `Resend in ${forgotCountdown.resendCooldown}s`}
+                        </Button>
+                      </Box>
+
+                      <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        disabled={loading || forgotOtpDigits.join("").length !== 6}
+                      >
+                        {loading ? <CircularProgress size={24} color="inherit" /> : "Verify Code"}
+                      </Button>
+
+                      <Button fullWidth variant="text" size="small" onClick={() => setForgotStep(0)} sx={{ mt: 2, color: 'text.secondary' }}>
+                        Change email address
+                      </Button>
+                    </Box>
+                  )}
+
+                  {/* Step 2: New Password */}
+                  {forgotStep === 2 && (
+                    <Box component="form" onSubmit={handleResetPassword} noValidate>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Set a new strong password for your account.
+                      </Typography>
+
+                      <TextField
+                        fullWidth
+                        label="New Password"
+                        variant="outlined"
+                        margin="normal"
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => { setNewPassword(e.target.value); clearError(); }}
+                        autoComplete="new-password"
+                        autoFocus
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end" sx={{ color: 'text.secondary' }}>
+                                {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+
+                      {newPassword && (
+                        <Box sx={{ mt: 1, mb: 2, px: 1 }}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={getPasswordStrength(newPassword).value}
+                            color={getPasswordStrength(newPassword).color}
+                            sx={{ height: 6, borderRadius: 3, mb: 0.5, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                          />
+                          <Typography variant="caption" color={`${getPasswordStrength(newPassword).color}.main`}>
+                            {getPasswordStrength(newPassword).label}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      <TextField
+                        fullWidth
+                        label="Confirm Password"
+                        variant="outlined"
+                        margin="normal"
+                        type={showNewPasswordConfirm ? 'text' : 'password'}
+                        value={newPasswordConfirm}
+                        error={Boolean(newPasswordConfirm && newPassword !== newPasswordConfirm)}
+                        helperText={newPasswordConfirm && newPassword !== newPasswordConfirm ? "Passwords do not match" : ""}
+                        onChange={(e) => { setNewPasswordConfirm(e.target.value); clearError(); }}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => setShowNewPasswordConfirm(!showNewPasswordConfirm)} edge="end" sx={{ color: 'text.secondary' }}>
+                                {showNewPasswordConfirm ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+
+                      <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        disabled={loading}
+                        sx={{ mt: 3 }}
+                      >
+                        {loading ? <CircularProgress size={24} color="inherit" /> : "Reset Password"}
+                      </Button>
+
+                      <Button fullWidth variant="text" size="small" onClick={handleBackFromForgotPassword} sx={{ mt: 2, color: 'text.secondary' }}>
+                        Back to Sign In
+                      </Button>
+                    </Box>
+                  )}
                 </Box>
               )}
 

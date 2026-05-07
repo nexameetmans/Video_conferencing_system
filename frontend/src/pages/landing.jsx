@@ -7,9 +7,9 @@ export default function LandingPage() {
   return (
     <div className="landingPageContainer">
       <nav>
-        <div className="navHeader">
+        <Link to="/" className="navHeader">
           <h2>NexaMeet</h2>
-        </div>
+        </Link>
         <div className="navlist">
           <p onClick={() => router("/aljk23")}>Join as Guest</p>
           <p onClick={() => router("/auth", { state: { mode: "register" } })}>Register</p>
@@ -20,7 +20,7 @@ export default function LandingPage() {
       </nav>
 
       <div className="landingMainContainer">
-        <div>
+        <div className="heroTextContent">
           <h1>
             <span>Connect, Collaborate</span><br />and Communicate Smarter
           </h1>
@@ -29,8 +29,8 @@ export default function LandingPage() {
             <Link to="/auth" state={{ mode: "register" }}>Get Started →</Link>
           </div>
         </div>
-        <div>
-          <img src="/mobile.png" alt="Video conferencing preview" />
+        <div className="heroImageContainer">
+          <img src="/mobile.png" alt="NexaMeet video conferencing interface" />
         </div>
       </div>
     </div>

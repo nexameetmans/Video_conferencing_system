@@ -171,21 +171,7 @@ export default function ProfileTab() {
             }}
           />
 
-          <TextField
-            label="User ID"
-            variant="outlined"
-            fullWidth
-            disabled
-            value={profileData?.id || ""}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                color: "rgba(255,255,255,0.6)",
-                background: "rgba(255,255,255,0.05)",
-                "& fieldset": { borderColor: "transparent" },
-              },
-              "& .MuiInputLabel-root": { color: "#9ca3af" },
-            }}
-          />
+
 
           <Button
             variant="contained"

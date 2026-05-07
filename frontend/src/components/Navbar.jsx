@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
   IconButton,
@@ -62,15 +62,32 @@ export default function Navbar() {
         alignItems: "center",
       }}
     >
-      <div 
-        style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
-        onClick={() => navigate("/home")}
+      <Link 
+        to="/home"
+        style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: "10px", 
+          cursor: "pointer", 
+          textDecoration: "none",
+          transition: "opacity 0.2s ease" 
+        }}
+        onMouseOver={(e) => e.currentTarget.style.opacity = "0.8"}
+        onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
       >
         <VideoCallIcon sx={{ color: "#7c5cfc", fontSize: "2.2rem" }} />
-        <h2 style={{ color: "#fff", margin: 0, fontWeight: 700 }}>
+        <h2 style={{ 
+            margin: 0, 
+            fontWeight: 800, 
+            fontSize: "1.7rem", 
+            letterSpacing: "-0.02em",
+            background: "linear-gradient(135deg, #a78bfa, #00d4ff)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent" 
+        }}>
           NexaMeet
         </h2>
-      </div>
+      </Link>
 
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         <Tooltip title="History">

@@ -31,10 +31,13 @@ api.interceptors.response.use(
 
 // ── Auth endpoints ──────────────────────────────────────
 export const authAPI = {
-    sendOTP:   (email)                          => api.post("/api/auth/send-otp",   { email }),
-    verifyOTP: (email, otp)                     => api.post("/api/auth/verify-otp", { email, otp }),
-    register:  (email, name, password)          => api.post("/api/auth/register",   { email, name, password }),
-    login:     (email, password)                => api.post("/api/auth/login",       { email, password }),
+    sendOTP:                    (email)                         => api.post("/api/auth/send-otp",                     { email }),
+    verifyOTP:                  (email, otp)                    => api.post("/api/auth/verify-otp",                   { email, otp }),
+    register:                   (email, name, password)         => api.post("/api/auth/register",                     { email, name, password }),
+    login:                      (email, password)               => api.post("/api/auth/login",                        { email, password }),
+    forgotPasswordSendOTP:      (email)                         => api.post("/api/auth/forgot-password/send-otp",    { email }),
+    forgotPasswordVerifyOTP:    (email, otp)                    => api.post("/api/auth/forgot-password/verify-otp",  { email, otp }),
+    resetPassword:              (email, password)               => api.post("/api/auth/reset-password",               { email, password }),
 };
 
 // ── User / Meeting endpoints ────────────────────────────

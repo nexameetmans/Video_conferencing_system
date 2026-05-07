@@ -11,6 +11,7 @@ import withAuth from "../../utils/withAuth";
 import ProfileTab from "./ProfileTab";
 import SecurityTab from "./SecurityTab";
 import MeetingsTab from "./MeetingsTab";
+import Navbar from "../../components/Navbar";
 
 function Profile() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -30,15 +31,17 @@ function Profile() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "#06061a",
-        color: "#fff",
-        py: 4,
-        px: { xs: 2, md: 6 },
-      }}
-    >
+    <>
+      <Navbar />
+      <Box
+        sx={{
+          minHeight: "calc(100vh - 65px)",
+          background: "#06061a",
+          color: "#fff",
+          py: 4,
+          px: { xs: 2, md: 6 },
+        }}
+      >
       <Box sx={{ display: "flex", alignItems: "center", mb: 4, gap: 2 }}>
         <Tooltip title="Back to Dashboard">
           <IconButton onClick={() => navigate("/home")} sx={{ color: "#a78bfa" }}>
@@ -158,6 +161,7 @@ function Profile() {
         </Grid>
       </Grid>
     </Box>
+    </>
   );
 }
 

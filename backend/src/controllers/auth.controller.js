@@ -158,3 +158,111 @@ export const login = async (req, res) => {
             .json({ message: "Login failed. Please try again." });
     }
 };
+
+// ── POST /api/auth/forgot-password/send-otp ────────────
+export const forgotPasswordSendOTP = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email || !EMAIL_REGEX.test(email.trim())) {
+        return res
+            .status(httpStatus.BAD_REQUEST)
+            .json({ message: "A valid email address is required" });
+    }
+
+    try {
+        await AuthService.forgotPasswordSendOTP(email);
+        console.log(`[forgotPasswordSendOTP] OTP sent to ${email.trim().toLowerCase()}`);
+        return res
+            .status(httpStatus.OK)
+            .json({ message: "OTP sent successfully. Please check your email." });
+
+    } catch (err) {
+        if (err.message === "USER_NOT_FOUND") {
+            return res.status(httpStatus.NOT_FOUND).json({ message: "No account found with this email address." });
+        }
+        console.error("[forgotPasswordSendOTP]", err);
+        return res
+            .status(httpStatus.INTERNAL_SERVER_ERROR)
+            .json({ message: "Failed to send OTP. Please try again." });
+    }
+};
+
+// ── POST /api/auth/forgot-password/verify-otp ──────────
+export const forgotPasswordVerifyOTP = async (req, res) => {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+        return res
+            .status(httpStatus.BAD_REQUEST)
+            .json({ message: "Email and OTP are required" });
+    }
+
+    try {
+        await AuthService.forgotPasswordVerifyOTP(email, otp);
+        console.log(`[forgotPasswordVerifyOTP] OTP verified for: ${email.trim().toLowerCase()}`);
+        return res
+            .status(httpStatus.OK)
+            .json({ message: "OTP verified successfully. You can now reset your password." });
+
+    } catch (err) {
+        if (err.message === "NOT_FOUND") {
+            return res.status(httpStatus.NOT_FOUND).json({ message: "No OTP request found for this email. Please request a new OTP." });
+        }
+        if (err.message === "EXPIRED_OTP") {
+            return res.status(httpStatus.BAD_REQUEST).json({ message: "OTP has expired. Please request a new one." });
+        }
+        if (err.message === "INVALID_OTP") {
+            return res.status(httpStatus.BAD_REQUEST).json({ message: "Invalid OTP. Please try again." });
+        }
+
+        console.error("[forgotPasswordVerifyOTP]", err);
+        return res
+            .status(httpStatus.INTERNAL_SERVER_ERROR)
+            .json({ message: "Verification failed. Please try again." });
+    }
+};
+
+// ── POST /api/auth/reset-password ───────────────────────
+export const resetPassword = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res
+            .status(httpStatus.BAD_REQUEST)
+            .json({ message: "Email and password are required" });
+    }
+
+    if (password.length < 8) {
+        return res
+            .status(httpStatus.BAD_REQUEST)
+            .json({ message: "Password must be at least 8 characters" });
+    }
+
+    const strongPassRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!strongPassRegex.test(password)) {
+        return res
+            .status(httpStatus.BAD_REQUEST)
+            .json({ message: "Password must contain at least one uppercase letter and one number" });
+    }
+
+    try {
+        await AuthService.resetPassword(email, password);
+        console.log(`[resetPassword] Password reset for: ${email.trim().toLowerCase()}`);
+        return res
+            .status(httpStatus.OK)
+            .json({ message: "Password reset successfully. Please sign in with your new password." });
+
+    } catch (err) {
+        if (err.message === "NOT_VERIFIED") {
+            return res.status(httpStatus.FORBIDDEN).json({ message: "Please verify your email with OTP first." });
+        }
+        if (err.message === "USER_NOT_FOUND") {
+            return res.status(httpStatus.NOT_FOUND).json({ message: "User not found." });
+        }
+
+        console.error("[resetPassword]", err);
+        return res
+            .status(httpStatus.INTERNAL_SERVER_ERROR)
+            .json({ message: "Password reset failed. Please try again." });
+    }
+};

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { sendOTP, verifyOTP, register, login } from "../controllers/auth.controller.js";
+import { sendOTP, verifyOTP, register, login, forgotPasswordSendOTP, forgotPasswordVerifyOTP, resetPassword } from "../controllers/auth.controller.js";
 
 // ── Rate limiters ──────────────────────────────────────
 // Tight limiter for OTP endpoint to prevent abuse / email spamming
@@ -24,14 +24,20 @@ const authLimiter = rateLimit({
 const router = Router();
 
 // ── Auth Routes ────────────────────────────────────────
-// POST /api/auth/send-otp    — Step 1: send OTP to email
-// POST /api/auth/verify-otp  — Step 2: verify OTP
+// POST /api/auth/send-otp    — Step 1: send OTP to email (registration)
+// POST /api/auth/verify-otp  — Step 2: verify OTP (registration)
 // POST /api/auth/register    — Step 3: complete registration
 // POST /api/auth/login       — Login with email + password
+// POST /api/auth/forgot-password/send-otp  — Send OTP for password reset
+// POST /api/auth/forgot-password/verify-otp — Verify OTP for password reset
+// POST /api/auth/reset-password — Reset password with new password
 
 router.post("/send-otp",   otpLimiter,  sendOTP);
 router.post("/verify-otp", otpLimiter,  verifyOTP);
 router.post("/register",   authLimiter, register);
 router.post("/login",      authLimiter, login);
+router.post("/forgot-password/send-otp", otpLimiter, forgotPasswordSendOTP);
+router.post("/forgot-password/verify-otp", otpLimiter, forgotPasswordVerifyOTP);
+router.post("/reset-password", authLimiter, resetPassword);
 
 export default router;

@@ -17,6 +17,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import ArticleIcon from "@mui/icons-material/Article";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
+import Navbar from "../components/Navbar";
 
 export default function History() {
   const { getHistoryOfUser, deleteMeeting, deleteMeetings } = useContext(AuthContext);
@@ -136,9 +137,11 @@ export default function History() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
+    <>
+      <Navbar />
+      <Box
+        sx={{
+          minHeight: "calc(100vh - 65px)",
         background: `
           radial-gradient(ellipse 60% 50% at 15% 10%, rgba(124,92,252,0.15) 0%, transparent 65%),
           radial-gradient(ellipse 50% 40% at 85% 80%, rgba(0,212,255,0.08) 0%, transparent 60%),
@@ -529,5 +532,6 @@ export default function History() {
         </Alert>
       </Snackbar>
     </Box>
+    </>
   );
 }

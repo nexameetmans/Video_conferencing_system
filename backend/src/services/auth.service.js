@@ -136,4 +136,86 @@ export const AuthService = {
         
         return { user, token };
     },
+
+    // ── Forgot Password: Send OTP ──────────────────────
+    async forgotPasswordSendOTP(email) {
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // Check if user exists
+        const user = await User.findOne({ email: normalizedEmail });
+        if (!user) {
+            throw new Error("USER_NOT_FOUND");
+        }
+
+        const otp       = generateOTP();
+        const expiresAt = new Date(Date.now() + OTP_TTL_MS);
+
+        // Store OTP for password reset
+        await OtpModel.findOneAndUpdate(
+            { email: normalizedEmail },
+            { $set: { otp, verified: false, expiresAt, purpose: "reset" } },
+            { upsert: true, new: true }
+        );
+
+        console.log(`[forgotPassword] OTP sent to ${normalizedEmail}`);
+        await sendOTPEmail(normalizedEmail, otp);
+        return normalizedEmail;
+    },
+
+    // ── Forgot Password: Verify OTP ────────────────────
+    async forgotPasswordVerifyOTP(email, otp) {
+        const normalizedEmail = email.trim().toLowerCase();
+
+        const entry = await OtpModel.findOne({ email: normalizedEmail });
+
+        if (!entry) {
+            throw new Error("NOT_FOUND");
+        }
+
+        if (new Date() > entry.expiresAt) {
+            await OtpModel.deleteOne({ email: normalizedEmail });
+            throw new Error("EXPIRED_OTP");
+        }
+
+        const submittedOtp = String(otp).trim();
+        if (entry.otp !== submittedOtp) {
+            throw new Error("INVALID_OTP");
+        }
+
+        await OtpModel.updateOne(
+            { email: normalizedEmail },
+            { $set: { verified: true } }
+        );
+        console.log(`[forgotPassword] OTP verified for ${normalizedEmail}`);
+        return normalizedEmail;
+    },
+
+    // ── Forgot Password: Reset Password ────────────────
+    async resetPassword(email, newPassword) {
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // Verify OTP was verified
+        const entry = await OtpModel.findOne({ email: normalizedEmail });
+        if (!entry || !entry.verified) {
+            throw new Error("NOT_VERIFIED");
+        }
+
+        // Update user password
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        const user = await User.findOneAndUpdate(
+            { email: normalizedEmail },
+            { password: hashedPassword },
+            { new: true }
+        );
+
+        if (!user) {
+            throw new Error("USER_NOT_FOUND");
+        }
+
+        // Clean up OTP
+        await OtpModel.deleteOne({ email: normalizedEmail });
+        console.log(`[resetPassword] Password reset for ${normalizedEmail}`);
+        
+        return user;
+    },
 };
