@@ -90,7 +90,8 @@ export const register = async (req, res) => {
     }
 
     try {
-        const { user, token } = await AuthService.register(email, name, password);
+        const deviceInfo = req.headers["user-agent"] || "Unknown Device";
+        const { user, token } = await AuthService.register(email, name, password, deviceInfo);
         console.log(`[register] New user registered: ${user.email}`);
         
         return res.status(httpStatus.CREATED).json({
@@ -132,7 +133,8 @@ export const login = async (req, res) => {
     }
 
     try {
-        const { user, token } = await AuthService.login(email, password);
+        const deviceInfo = req.headers["user-agent"] || "Unknown Device";
+        const { user, token } = await AuthService.login(email, password, deviceInfo);
         console.log(`[login] User logged in: ${user.email}`);
         
         return res.status(httpStatus.OK).json({

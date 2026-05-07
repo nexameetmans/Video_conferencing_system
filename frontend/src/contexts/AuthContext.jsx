@@ -87,8 +87,17 @@ export const AuthProvider = ({ children }) => {
         return res.data;
     };
 
-    /** Logout — clear token and redirect */
-    const logout = useCallback(() => {
+    /** Logout — clear token from DB and local, redirect */
+    const logout = useCallback(async (skipApi = false) => {
+        const token = localStorage.getItem("token");
+        if (token && skipApi !== true) {
+            try {
+                // Call backend to remove session token
+                await userAPI.logoutDevice(token);
+            } catch (err) {
+                console.error("[logout error]", err);
+            }
+        }
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         setUser(null);
@@ -129,6 +138,35 @@ export const AuthProvider = ({ children }) => {
         await userAPI.deleteMeetings(ids);
     };
 
+    // ── Profile / Security Actions ───────────────────────
+
+    const getProfile = async () => {
+        const res = await userAPI.getProfile();
+        return res.data;
+    };
+
+    const updateProfile = async (data) => {
+        const res = await userAPI.updateProfile(data);
+        if (res.data.user) {
+            persistSession(localStorage.getItem("token"), res.data.user);
+        }
+        return res.data;
+    };
+
+    const changePassword = async (oldPassword, newPassword) => {
+        const res = await userAPI.changePassword(oldPassword, newPassword);
+        return res.data;
+    };
+
+    const logoutDevice = async (sessionId) => {
+        await userAPI.logoutDevice(sessionId);
+    };
+
+    const logoutAll = async () => {
+        await userAPI.logoutAll();
+        logout(true);
+    };
+
     // ── Context Value ───────────────────────────────────
     const value = {
         // State
@@ -149,6 +187,13 @@ export const AuthProvider = ({ children }) => {
         getMeetingDetails,
         deleteMeeting,
         deleteMeetings,
+
+        // Profile
+        getProfile,
+        updateProfile,
+        changePassword,
+        logoutDevice,
+        logoutAll,
     };
 
     return (

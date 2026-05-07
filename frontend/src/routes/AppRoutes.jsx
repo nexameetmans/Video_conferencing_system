@@ -7,6 +7,7 @@ const VideoMeetComponent = lazy(() => import("../pages/VideoMeet"));
 const Dashboard = lazy(() => import("../pages/Dashboard"));
 const History = lazy(() => import("../pages/history"));
 const MeetingTranscript = lazy(() => import("../pages/MeetingTranscript"));
+const Profile = lazy(() => import("../pages/Profile"));
 
 export default function AppRoutes() {
     return (
@@ -15,6 +16,7 @@ export default function AppRoutes() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth" element={<Authentication />} />
                 <Route path="/home" element={<Dashboard />} />
+                <Route path="/profile" element={<Profile />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/meeting/:meetingCode" element={<MeetingTranscript />} />
                 <Route path="/:url" element={<VideoMeetComponent />} />

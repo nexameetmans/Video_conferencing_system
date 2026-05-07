@@ -23,9 +23,9 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import KeyboardIcon from "@mui/icons-material/Keyboard";
 import EventIcon from "@mui/icons-material/Event";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { AuthContext } from "../contexts/AuthContext";
 import DeleteIcon from "@mui/icons-material/Delete";
+import Navbar from "../components/Navbar";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -106,51 +106,7 @@ function Dashboard() {
 
   return (
     <>
-      <div
-        className="navBar"
-        style={{
-          borderBottom: "1px solid rgba(255,255,255,0.1)",
-          background: "#0d0d2b",
-          padding: "10px 20px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <VideoCallIcon sx={{ color: "#7c5cfc", fontSize: "2.2rem" }} />
-          <h2 style={{ color: "#fff", margin: 0, fontWeight: 700 }}>
-            NexaMeet
-          </h2>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Tooltip title="History">
-            <IconButton
-              onClick={() => navigate("/history")}
-              sx={{ color: "#fff" }}
-            >
-              <RestoreIcon />
-            </IconButton>
-          </Tooltip>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<LogoutIcon />}
-            onClick={logout}
-            sx={{
-              borderRadius: "8px",
-              color: "#ff6b6b",
-              borderColor: "rgba(255,107,107,0.35)",
-              "&:hover": {
-                background: "rgba(255,107,107,0.1)",
-                borderColor: "#ff6b6b",
-              },
-            }}
-          >
-            Logout
-          </Button>
-        </div>
-      </div>
+      <Navbar />
 
       <div
         style={{

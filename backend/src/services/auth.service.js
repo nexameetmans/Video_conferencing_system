@@ -77,7 +77,7 @@ export const AuthService = {
     },
 
     // ── Step 3: /register ─────────────────────────────
-    async register(email, name, password) {
+    async register(email, name, password, deviceInfo = "Unknown Device") {
         const normalizedEmail = email.trim().toLowerCase();
 
         // Gate: find the OTP entry and confirm it was verified
@@ -97,7 +97,7 @@ export const AuthService = {
             throw new Error("ACCOUNT_EXISTS");
         }
 
-        // Hash password and create the user — first write to users collection
+        // Hash password and create the user
         const hashedPassword = await bcrypt.hash(password, 12);
         const user = await User.create({
             email:    normalizedEmail,
@@ -105,16 +105,19 @@ export const AuthService = {
             password: hashedPassword,
         });
 
+        const token = generateToken(user._id.toString());
+        user.sessions.push({ token, deviceInfo });
+        await user.save();
+
         // Registration complete — OTP entry is no longer needed
         await OtpModel.deleteOne({ email: normalizedEmail });
-        console.log(`[register] User created and OTP deleted for ${normalizedEmail}`);
+        console.log(`[register] User created and session saved for ${normalizedEmail}`);
 
-        const token = generateToken(user._id.toString());
         return { user, token };
     },
 
     // ── Login ─────────────────────────────────────────
-    async login(email, password) {
+    async login(email, password, deviceInfo = "Unknown Device") {
         const normalizedEmail = email.trim().toLowerCase();
         const user = await User.findOne({ email: normalizedEmail });
 
@@ -128,6 +131,9 @@ export const AuthService = {
         }
 
         const token = generateToken(user._id.toString());
+        user.sessions.push({ token, deviceInfo });
+        await user.save();
+        
         return { user, token };
     },
 };

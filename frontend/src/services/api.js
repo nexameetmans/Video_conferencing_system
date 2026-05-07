@@ -45,6 +45,13 @@ export const userAPI = {
     deleteMeeting:     (id)                                            => api.delete(`/api/v1/users/meeting/${id}`),
     deleteMeetings:    (ids)                                           => api.post("/api/v1/users/meeting/delete", { ids }),
     summarizeMeeting:  (meetingCode)                                   => api.post("/api/summarize-meeting", { meetingCode }),
+
+    // Profile & Security
+    getProfile:        ()                                              => api.get("/api/v1/users/profile"),
+    updateProfile:     (data)                                          => api.put("/api/v1/users/update", data),
+    changePassword:    (oldPassword, newPassword)                      => api.put("/api/v1/users/change-password", { oldPassword, newPassword }),
+    logoutDevice:      (sessionId)                                     => api.delete(`/api/v1/users/logout-session/${sessionId}`),
+    logoutAll:         ()                                              => api.post("/api/v1/users/logout-all"),
 };
 
 export default api;

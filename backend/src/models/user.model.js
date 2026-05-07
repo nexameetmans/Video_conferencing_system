@@ -6,6 +6,14 @@ const userSchema = new Schema(
         name: { type: String, required: true },
         password: { type: String, required: true },
         isVerified: { type: Boolean, default: true },
+        profilePic: { type: String, default: "" },
+        sessions: [
+            {
+                token: { type: String, required: true },
+                deviceInfo: { type: String, default: "Unknown Device" },
+                lastActive: { type: Date, default: Date.now },
+            }
+        ],
     },
     { timestamps: true }
 );

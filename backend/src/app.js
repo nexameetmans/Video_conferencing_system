@@ -34,7 +34,7 @@ app.use(cors({
             callback(null, true); 
         }
     },
-    methods:     ["GET", "POST", "DELETE", "PATCH"],
+    methods:     ["GET", "POST", "DELETE", "PATCH", "PUT"],
     credentials: true,
 }));
 
