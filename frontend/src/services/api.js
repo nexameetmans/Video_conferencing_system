@@ -44,10 +44,11 @@ export const authAPI = {
 export const userAPI = {
     getHistory:        ()                                              => api.get("/api/v1/users/get_all_activity"),
     addToHistory:      (meeting_code, transcript = "", summary = "")  => api.post("/api/v1/users/add_to_activity", { meeting_code, transcript, summary }),
+    joinMeeting:       (meetingCode, username)                         => api.post("/api/v1/users/join_meeting", { meetingCode, username }),
     getMeeting:        (meetingCode)                                   => api.get(`/api/v1/users/meeting/${meetingCode}`),
     deleteMeeting:     (id)                                            => api.delete(`/api/v1/users/meeting/${id}`),
     deleteMeetings:    (ids)                                           => api.post("/api/v1/users/meeting/delete", { ids }),
-    summarizeMeeting:  (meetingCode)                                   => api.post("/api/summarize-meeting", { meetingCode }),
+    summarizeMeeting:  (meetingCode)                                   => api.post("/api/summarize-meeting", { meetingCode }, { timeout: 60000 }),
 
     // Profile & Security
     getProfile:        ()                                              => api.get("/api/v1/users/profile"),

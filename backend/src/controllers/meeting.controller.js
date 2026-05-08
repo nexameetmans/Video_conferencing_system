@@ -14,6 +14,10 @@ export const summarizeMeeting = async (req, res) => {
 
     const code = meetingCode.trim();
 
+    // Resolve the authenticated user's ID if available (auth middleware may or
+    // may not be present on this route — handle both cases gracefully)
+    const userId = req.user?._id || null;
+
     // ── Step 1: Fetch transcript rows from DB ──────────────────────────────
     let transcriptDocs;
     try {
@@ -24,15 +28,20 @@ export const summarizeMeeting = async (req, res) => {
     }
 
     if (!transcriptDocs || transcriptDocs.length === 0) {
-        // No transcript rows — still save an empty meeting record so history shows the meeting
+        // No transcript rows — still ensure a meeting record exists so history shows it
         try {
-            const emptyMeeting = new Meeting({
-                meetingCode: code,
-                transcript: "",
-                summary: "",
-                date: new Date(),
-            });
-            await emptyMeeting.save();
+            const updatePayload = {
+                $setOnInsert: { meetingCode: code, transcript: "", summary: "", date: new Date() }
+            };
+            // Set user_id if we know it and the doc doesn't have one yet
+            if (userId) {
+                updatePayload.$setOnInsert.user_id = userId;
+            }
+            await Meeting.findOneAndUpdate(
+                { meetingCode: code },
+                updatePayload,
+                { upsert: true, new: true, sort: { date: -1 } }
+            );
         } catch (_) { /* non-fatal */ }
 
         return res.status(200).json({
@@ -113,14 +122,37 @@ ${trimmed}`;
     }
 
     // ── Step 4: Save into meetings collection ─────────────────────────────
+    // Use findOneAndUpdate + upsert so we update an existing doc (created
+    // when participants joined) rather than creating a duplicate.
+    // IMPORTANT: sort by { date: -1 } so we always target the SAME doc that
+    //            getUserHistory / getMeetingByCode would return.
     try {
-        const savedMeeting = new Meeting({
-            meetingCode: code,
+        const setFields = {
             transcript: fullTranscript,
             summary: summary,
-            date: new Date(),
-        });
-        await savedMeeting.save();
+        };
+        // Record when the summary was generated (only if we actually got one)
+        if (summary) {
+            setFields.summaryGeneratedAt = new Date();
+        }
+        // Set user_id on the doc if we know who the host is
+        if (userId) {
+            setFields.user_id = userId;
+        }
+
+        const savedMeeting = await Meeting.findOneAndUpdate(
+            { meetingCode: code },
+            {
+                $set: setFields,
+                $setOnInsert: {
+                    meetingCode: code,
+                    date: new Date(),
+                }
+            },
+            { upsert: true, new: true, sort: { date: -1 } }
+        );
+
+        console.log("[summarizeMeeting] Saved meeting _id:", savedMeeting._id, "summary length:", (savedMeeting.summary || "").length);
     } catch (err) {
         console.error("[summarizeMeeting] Save error:", err.message);
         return res.status(500).json({ message: "Transcript found but could not save meeting record" });

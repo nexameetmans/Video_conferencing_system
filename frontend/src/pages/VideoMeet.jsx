@@ -83,7 +83,7 @@ export default function VideoMeetComponent() {
     } = useWebRTC(createBlackSilence, forceDisableAudio, forceDisableVideo, handleMeetingEnded);
 
     const { captionsOn, toggleCaptions, captions, transcript } = useCaptions(getSocket(), username);
-    const { endMeeting, addToUserHistory } = useContext(AuthContext);
+    const { endMeeting, addToUserHistory, joinMeeting: joinMeetingCtx } = useContext(AuthContext);
     const { url: meetingCode } = useParams();
 
     // ── Emit media status whenever audio/video toggles ──
@@ -179,7 +179,10 @@ export default function VideoMeetComponent() {
         setAskForUsername(false);
         startMedia(cameraOn, micOn);
         connectToSocket(username);
-    }, [startMedia, connectToSocket, username, lobbyStream, cameraOn, micOn]);
+
+        // Record this user as a participant in MongoDB
+        joinMeetingCtx(meetingCode, username);
+    }, [startMedia, connectToSocket, username, lobbyStream, cameraOn, micOn, joinMeetingCtx, meetingCode]);
 
     const handleLeaveCall = useCallback(async () => {
         stopAllTracks();

@@ -61,6 +61,16 @@ function Dashboard() {
     navigate(`/${code}`);
   };
 
+  // Join from a scheduled meeting card — removes the meeting from the schedule
+  const handleJoinScheduledMeeting = (meeting) => {
+    // Remove from scheduled list since the user is joining now
+    const saved = JSON.parse(localStorage.getItem("scheduledMeetings") || "[]");
+    const updated = saved.filter((m) => m.id !== meeting.id);
+    localStorage.setItem("scheduledMeetings", JSON.stringify(updated));
+    setRefresh((prev) => prev + 1);
+    handleJoinVideoCall(meeting.id);
+  };
+
   const handleNewMeeting = () => {
     // Generate unique ID (UUID fallback)
     const uuid = crypto.randomUUID
@@ -342,7 +352,7 @@ function Dashboard() {
                                 color: "#7c5cfc",
                               },
                             }}
-                            onClick={() => handleJoinVideoCall(m.id)}
+                            onClick={() => handleJoinScheduledMeeting(m)}
                           >
                             {m.title ? `${m.title} (${m.id})` : m.id}
                           </Typography>

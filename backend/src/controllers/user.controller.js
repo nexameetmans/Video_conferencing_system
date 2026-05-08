@@ -68,4 +68,19 @@ const deleteMeetings = async (req, res) => {
     }
 };
 
-export { getUserHistory, addToHistory, getMeetingById, deleteMeeting, deleteMeetings };
+// ── Join Meeting (record participant) ──────────────────
+const joinMeeting = async (req, res) => {
+    try {
+        const { meetingCode, username } = req.body;
+        if (!meetingCode || !meetingCode.trim()) {
+            return res.status(httpStatus.BAD_REQUEST).json({ message: "meetingCode is required" });
+        }
+        await MeetingService.joinMeeting(req.user._id, meetingCode, username || "Unknown");
+        return res.status(httpStatus.OK).json({ message: "Joined meeting recorded" });
+    } catch (e) {
+        console.error("[joinMeeting]", e);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: "Could not record join" });
+    }
+};
+
+export { getUserHistory, addToHistory, getMeetingById, deleteMeeting, deleteMeetings, joinMeeting };

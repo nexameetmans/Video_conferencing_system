@@ -133,6 +133,14 @@ export const AuthProvider = ({ children }) => {
         await userAPI.addToHistory(meetingCode, transcript, summary);
     };
 
+    const joinMeeting = async (meetingCode, username) => {
+        try {
+            await userAPI.joinMeeting(meetingCode, username);
+        } catch (err) {
+            console.error("[joinMeeting]", err);
+        }
+    };
+
     const endMeeting = async (meetingCode) => {
         try {
             const res = await userAPI.summarizeMeeting(meetingCode);
@@ -206,6 +214,7 @@ export const AuthProvider = ({ children }) => {
         // Meeting / History
         getHistoryOfUser,
         addToUserHistory,
+        joinMeeting,
         endMeeting,
         getMeetingDetails,
         deleteMeeting,
